@@ -21,6 +21,11 @@ concurrency:
   group: ${{ inputs.release && format('app-builder-{0}', inputs.app) || format('app-builder-{0}-{1}', inputs.app, github.run_id) }}
   cancel-in-progress: false
 
+# ghcr.io requires lowercase repository names, but github.repository_owner
+# keeps the account's casing (MrMarble).
+env:
+  OWNER: mrmarble
+
 permissions:
   contents: read
 
@@ -56,7 +61,7 @@ jobs:
         with:
           flavor: latest=false
           images: |
-            ghcr.io/${{ github.repository_owner }}/${{ inputs.app }}
+            ghcr.io/${{ env.OWNER }}/${{ inputs.app }}
           tags: |
             type=semver,pattern={{version}},value=${{ steps.app-versions.outputs.semantic }},enable=${{ steps.app-versions.outputs.is-valid-semver && inputs.release }}
             type=semver,pattern={{major}}.{{minor}},value=${{ steps.app-versions.outputs.semantic }},enable=${{ steps.app-versions.outputs.is-valid-semver && inputs.release }}
@@ -129,17 +134,17 @@ jobs:
             ./docker-bake.hcl
             cwd://${{ runner.temp }}/docker-metadata-action-bake.json
           set: |
-            *.cache-from=${{ format('type=registry,ref=ghcr.io/{0}/build_cache:{1}-{2},mode=max', github.repository_owner, inputs.app, steps.target.outputs.arch) }}
-            *.cache-to=${{ inputs.release && format('type=registry,ref=ghcr.io/{0}/build_cache:{1}-{2},mode=max,compression=zstd,force-compression=true', github.repository_owner, inputs.app, steps.target.outputs.arch) || '' }}
+            *.cache-from=${{ format('type=registry,ref=ghcr.io/{0}/build_cache:{1}-{2},mode=max', env.OWNER, inputs.app, steps.target.outputs.arch) }}
+            *.cache-to=${{ inputs.release && format('type=registry,ref=ghcr.io/{0}/build_cache:{1}-{2},mode=max,compression=zstd,force-compression=true', env.OWNER, inputs.app, steps.target.outputs.arch) || '' }}
             *.labels.org.opencontainers.image.title=${{ inputs.app }}
-            *.labels.org.opencontainers.image.url=https://ghcr.io/${{ github.repository_owner }}/${{ inputs.app }}
+            *.labels.org.opencontainers.image.url=https://ghcr.io/${{ env.OWNER }}/${{ inputs.app }}
             *.labels.org.opencontainers.image.version=${{ steps.app-options.outputs.version }}
             *.labels.org.opencontainers.image.revision=${{ github.sha }}
-            *.labels.org.opencontainers.image.vendor=${{ github.repository_owner }}
+            *.labels.org.opencontainers.image.vendor=${{ env.OWNER }}
             *.no-cache=${{ inputs.no-cache }}
-            *.output=${{ inputs.release && format('type=image,name=ghcr.io/{0}/{1},push-by-digest=true,name-canonical=true,push=true,compression=zstd,force-compression=true', github.repository_owner, inputs.app) || 'type=docker' }}
+            *.output=${{ inputs.release && format('type=image,name=ghcr.io/{0}/{1},push-by-digest=true,name-canonical=true,push=true,compression=zstd,force-compression=true', env.OWNER, inputs.app) || 'type=docker' }}
             *.platform=${{ matrix.platform }}
-            *.tags=${{ ! inputs.release && format('ghcr.io/{0}/{1}:sandbox', github.repository_owner, inputs.app) || '' }}
+            *.tags=${{ ! inputs.release && format('ghcr.io/{0}/{1}:sandbox', env.OWNER, inputs.app) || '' }}
           source: ./apps/${{ inputs.app }}
           targets: image
 
@@ -172,7 +177,6 @@ jobs:
       packages: write
     env:
       APP: ${{ inputs.app }}
-      REPO_OWNER: ${{ github.repository_owner }}
     outputs:
       digest: ${{ steps.digest.outputs.digest }}
     steps:
@@ -199,7 +203,7 @@ jobs:
       - name: Create Manifest List and Push
         working-directory: ${{ runner.temp }}/digests
         run: |
-          IMAGE="ghcr.io/${REPO_OWNER}/${APP}"
+          IMAGE="ghcr.io/${OWNER}/${APP}"
           docker buildx imagetools create \
               $(jq --raw-output --compact-output --arg image "$IMAGE" '.target."docker-metadata-action".tags | map(select(startswith($image)) | "-t " + .) | join(" ")' "${RUNNER_TEMP}/docker-metadata-action-bake.json") \
               $(printf "${IMAGE}@sha256:%s " *)
@@ -208,8 +212,8 @@ jobs:
         id: digest
         run: |
           TAG=$(jq --raw-output '.target."docker-metadata-action".args.DOCKER_META_VERSION' "${RUNNER_TEMP}/docker-metadata-action-bake.json")
-          docker buildx imagetools inspect "ghcr.io/${REPO_OWNER}/${APP}:${TAG}"
-          DIGEST=$(docker buildx imagetools inspect "ghcr.io/${REPO_OWNER}/${APP}:${TAG}" --format '{{ json . }}' | jq --raw-output '.manifest.digest')
+          docker buildx imagetools inspect "ghcr.io/${OWNER}/${APP}:${TAG}"
+          DIGEST=$(docker buildx imagetools inspect "ghcr.io/${OWNER}/${APP}:${TAG}" --format '{{ json . }}' | jq --raw-output '.manifest.digest')
           echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
 
   attest:
@@ -235,5 +239,5 @@ jobs:
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           push-to-registry: true
-          subject-name: ghcr.io/${{ github.repository_owner }}/${{ inputs.app }}
+          subject-name: ghcr.io/${{ env.OWNER }}/${{ inputs.app }}
           subject-digest: ${{ needs.merge.outputs.digest }}
