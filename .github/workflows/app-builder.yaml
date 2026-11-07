@@ -37,13 +37,13 @@ jobs:
           persist-credentials: false
 
       - name: Get App Options
-        uses: ./.github/actions/app-options
+        uses: $/.github/actions/app-options
         id: app-options
         with:
           app: ${{ inputs.app }}
 
       - name: Get App Versions
-        uses: ./.github/actions/app-versions
+        uses: $/.github/actions/app-versions
         id: app-versions
         with:
           upstream-version: ${{ steps.app-options.outputs.version }}
@@ -100,7 +100,7 @@ jobs:
             core.setOutput('arch', process.env.PLATFORM.split('/').pop());
 
       - name: Get App Options
-        uses: ./.github/actions/app-options
+        uses: $/.github/actions/app-options
         id: app-options
         with:
           app: ${{ inputs.app }}
