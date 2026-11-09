@@ -8,7 +8,7 @@ FROM ghcr.io/getpaseo/paseo:${VERSION}
 USER root
 
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
-ARG CLAUDE_CODE_VERSION=2.1.319
+ARG CLAUDE_CODE_VERSION=2.1.321
 # renovate: datasource=npm depName=opencode-ai
 ARG OPENCODE_VERSION=1.19.5
 # renovate: datasource=github-releases depName=cli/cli
