@@ -6,7 +6,7 @@ variable "APP" {
 
 variable "VERSION" {
   // renovate: datasource=docker depName=ghcr.io/getpaseo/paseo
-  default = "0.17.0"
+  default = "0.17.1"
 }
 
 variable "SOURCE" {
