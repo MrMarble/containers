@@ -12,7 +12,7 @@ ARG CLAUDE_CODE_VERSION=2.1.332
 # renovate: datasource=npm depName=opencode-ai
 ARG OPENCODE_VERSION=1.19.6
 # renovate: datasource=github-releases depName=cli/cli
-ARG GH_VERSION=2.105.0
+ARG GH_VERSION=2.106.0
 
 RUN npm install -g \
         @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
